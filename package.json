@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docker:build": "docker build -t sync-panel .",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:dev": "docker compose up --build",
+    "docker:clean": "docker compose down -v --rmi local"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
