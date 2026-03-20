@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -50,6 +51,9 @@ export default function RootLayout({
 
         {/* Main Content */}
         <main className="flex-1">{children}</main>
+
+        {/* Toast notifications */}
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );
