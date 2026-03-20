@@ -14,7 +14,7 @@ A Web App Integration Sync Panel for B2B SaaS platforms that connects to multipl
 - **Framework**: Next.js 16.2.0 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
-- **UI Components**: @base-ui/react, lucide-react
+- **UI Components**: @base-ui/react, shadcn, lucide-react, sonner
 - **Runtime**: Node.js 20+
 
 ## Getting Started
@@ -23,6 +23,12 @@ A Web App Integration Sync Panel for B2B SaaS platforms that connects to multipl
 
 - Node.js 20+
 - npm, yarn, pnpm, or bun
+
+### Environment Variables
+
+Create a local env file (for example `.env.local`) and set:
+
+- **`API_BASE_URL`**: Base URL for the sync API. Default: `https://portier-takehometest.onrender.com/api/v1`
 
 ### Local Development
 
@@ -40,14 +46,14 @@ npm run dev
 
 ```bash
 # Build and run with Docker Compose
-npm run docker:up
+npm run docker:up # then open http://localhost:3000
+
+# Run compose in the foreground (build + logs)
+npm run docker:dev
 
 # Or build the image manually
 npm run docker:build
-docker run -p 3000:3000 nextjs-app
-
-# View logs
-npm run docker:logs
+docker run -p 3000:3000 sync-panel
 
 # Stop containers
 npm run docker:down
@@ -60,8 +66,8 @@ npm run docker:clean
 
 The application integrates with the Portier sync API:
 
-- **Endpoint**: `POST https://portier-takehometest.onrender.com/api/v1/data/sync`
-- **Fallback**: Uses mock data when API is unavailable
+- **Endpoint**: `GET /data/sync?application_id=<id>` (base URL is `API_BASE_URL`)
+- **Fallback**: Uses mock sync preview data when the API is unavailable
 
 ### Error Handling
 
@@ -71,27 +77,33 @@ The UI handles the following error states:
 - `500` - Internal server error
 - `502` - Gateway error (integration service down)
 - `503` - Service unavailable
-- `timeout` - Request timeout
+- Network/operational failures - surfaced as an error response and may fall back to mock data when available
 
 ## Architecture
 
 ```
 src/
 ├── app/
-│   ├── integrations/
-│   │   ├── page.tsx           # Integrations list
-│   │   └── [id]/page.tsx      # Integration detail
-│   └── layout.tsx             # Root layout
+│   ├── page.tsx                           # Redirects to /integrations
+│   └── integrations/
+│       ├── page.tsx                       # Integrations list
+│       └── [id]/
+│           ├── page.tsx                   # Integration detail
+│           ├── conflicts/page.tsx         # Conflict resolution screen
+│           ├── history/page.tsx           # Sync history screen
+│           └── version-diff/page.tsx      # Version diff screen
 ├── components/
 │   ├── integrations/          # Integration-specific components
 │   ├── sync/                  # Sync/conflict resolution UI
 │   └── ui/                    # Shared UI primitives
-├── hooks/
-│   └── useSync.ts             # Sync state management
-└── lib/
-    ├── api.ts                 # API client with error handling
-    ├── mock-data.ts           # Mock data for development
-    └── types.ts               # TypeScript type definitions
+├── lib/
+│   ├── api.ts                 # API response helpers + fetch wrapper
+│   ├── mock-data.ts           # Mock integrations/history/conflicts
+│   └── utils.ts               # Shared utilities
+├── services/
+│   └── sync.service.ts         # Server-only sync/data access layer
+└── types/
+    └── sync.ts                 # TypeScript types for sync domain
 ```
 
 ## Design Decisions
@@ -106,10 +118,10 @@ Used @base-ui/react for the Button primitive component as it provides:
 
 ### Error Handling Strategy
 
-1. API calls include timeout handling (10s default, 15s for sync)
-2. Graceful fallback to mock data when API is unavailable
-3. User-friendly error messages mapped to HTTP status codes
-4. Clear visual indicators for different error types
+1. API calls return a strict `ApiResponse<T>` contract
+2. Error messages are mapped to common HTTP failures (4xx/500/502)
+3. Graceful fallback to mock data for sync preview when the API is unavailable
+4. Clear UI states for conflict/error/syncing
 
 ### Conflict Resolution Flow
 
@@ -118,7 +130,3 @@ Used @base-ui/react for the Button primitive component as it provides:
 3. Conflicts displayed with side-by-side comparison
 4. User resolves each conflict (keep local, use external, or custom value)
 5. User confirms sync when all conflicts resolved
-
-## Assumptions
-
-## Future Improvements
