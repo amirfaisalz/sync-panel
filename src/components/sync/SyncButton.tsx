@@ -55,17 +55,32 @@ export function SyncButton({
       try {
         const result = await syncIntegration(id);
 
-        if (result.length === 0) {
+        if (result.isApiError) {
+          if (result.statusCode === 400 || result.statusCode === 404) {
+            toast.error("Configuration issue: Please check your integration settings.");
+          } else if (result.statusCode === 500) {
+            toast.error("Internal server error. Please try again later.");
+          } else if (result.statusCode === 502) {
+            toast.error("Gateway error: Integration service is currently unavailable.");
+          } else {
+            toast.error(result.message || "Sync failed. Please try again.");
+          }
+          return;
+        }
+
+        if (result.changes.length === 0) {
           toast.success(
             `${integrationName} is already in sync — no changes to review.`,
           );
           return;
         }
 
-        setChanges(result);
+        setChanges(result.changes);
         setDialogOpen(true);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to sync");
+        if (error instanceof Error && error.message !== "NEXT_REDIRECT") {
+          toast.error(error.message || "Failed to sync. Please try again.");
+        }
       }
     });
   };

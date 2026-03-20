@@ -115,7 +115,7 @@ export function IntegrationDetail({
           <div className="flex gap-3">
             <Link
               href={`/integrations/${integration.id}/history`}
-              className="inline-flex items-center gap-1 text-sm text-black mb-6 border border-gray-200 rounded-md p-2"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground mb-6 border border-border/60 bg-background hover:bg-muted rounded-md p-2 transition-colors"
             >
               <History className="size-3.5" />
               View History
@@ -123,7 +123,7 @@ export function IntegrationDetail({
             {integration.status === "conflict" && (
               <Link
                 href={`/integrations/${integration.id}/conflicts`}
-                className="inline-flex items-center gap-1 bg-yellow-50 text-sm text-yellow-800 mb-6 border border-yellow-800 rounded-md p-2"
+                className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-md p-2 transition-colors"
               >
                 <AlertTriangle className="size-3.5" />
                 Resolve Conflicts

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, ArrowLeft, ArrowRight } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import type {
   ApplicationID,
   ConflictField,
@@ -19,11 +19,13 @@ export function ConflictResolver({
   conflicts: initialConflicts,
   onBack,
   onMerge,
+  isApplying = false,
 }: {
   integration: { id: ApplicationID; name: string };
   conflicts: ConflictField[];
   onBack: () => void;
   onMerge: (resolved: ConflictField[]) => void;
+  isApplying?: boolean;
 }) {
   const [conflicts, setConflicts] = useState<ConflictField[]>(initialConflicts);
 
@@ -204,12 +206,21 @@ export function ConflictResolver({
       <div className="flex justify-end">
         <Button
           size="lg"
-          disabled={!allResolved}
+          disabled={!allResolved || isApplying}
           onClick={() => onMerge(conflicts)}
           className="gap-2"
         >
-          <ArrowRight className="size-4" />
-          Apply Merge ({resolvedCount}/{conflicts.length})
+          {isApplying ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Applying...
+            </>
+          ) : (
+            <>
+              <ArrowRight className="size-4" />
+              Apply Merge ({resolvedCount}/{conflicts.length})
+            </>
+          )}
         </Button>
       </div>
     </div>
