@@ -2,35 +2,120 @@
 
 A Web App Integration Sync Panel for B2B SaaS platforms that connects to multiple external services (Salesforce, HubSpot, Stripe, etc.).
 
-## Features
+The system supports **bidirectional data synchronization** with safe conflict detection, resolution, and full version history.
 
-- **Integrations List** - Overview of all integrations with status indicators (Synced, Syncing, Conflict, Error)
-- **Integration Detail** - Summary, Sync Now trigger, preview of incoming changes
-- **Sync History & Versioning** - Past sync events with version tracking and change inspection
-- **Conflict Resolution** - Side-by-side comparison UI with per-field resolution choices
+---
 
-## Tech Stack
+## Table of Contents
 
-- **Framework**: Next.js 16.2.0 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **UI Components**: @base-ui/react, shadcn, lucide-react, sonner
-- **Runtime**: Node.js 20+
+- [Quick Start with Docker](#quick-start-with-docker)
+- [Prerequisites](#prerequisites)
+- [Docker Setup](#docker-setup)
+- [Local Development](#local-development)
+- [Environment Variables](#environment-variables)
+- [Features](#features)
+- [API Integration](#api-integration)
+- [Architecture](#architecture)
+- [Troubleshooting](#troubleshooting)
 
-## Getting Started
+---
 
-### Prerequisites
+## Quick Start with Docker
 
-- Node.js 20+
-- npm, yarn, pnpm, or bun
+Get the application running in under 2 minutes:
 
-### Environment Variables
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd sync-panel
 
-Create a local env file (for example `.env.local`) and set:
+# 2. Build and run with Docker Compose
+docker compose up -d
 
-- **`API_BASE_URL`**: Base URL for the sync API. Default: `https://portier-takehometest.onrender.com/api/v1`
+# 3. Open the application
+open http://localhost:3000
+```
 
-### Local Development
+That's it! The application will be available at `http://localhost:3000`.
+
+---
+
+## Prerequisites
+
+### Required
+
+| Tool | Version | Installation |
+|------|---------|-------------|
+| [Docker](https://docs.docker.com/get-docker/) | 20.10+ | [Install Guide](https://docs.docker.com/desktop/) |
+| [Docker Compose](https://docs.docker.com/compose/install/) | 2.0+ | Included with Docker Desktop |
+
+### Optional (for local development without Docker)
+
+| Tool | Version |
+|------|---------|
+| Node.js | 20+ |
+| npm / yarn / pnpm / bun | Latest |
+
+---
+
+## Docker Setup
+
+### Option 1: Docker Compose (Recommended)
+
+Docker Compose handles building, networking, and health checks automatically.
+
+```bash
+# Build and start the container in detached mode
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the container
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+```
+
+### Option 2: Manual Docker Build
+
+```bash
+# Build the image
+docker build -t sync-panel .
+
+# Run the container
+docker run -p 3000:3000 \
+  -e API_BASE_URL=https://portier-takehometest.onrender.com/api/v1 \
+  sync-panel
+```
+
+### Option 3: Using npm Scripts
+
+The project includes convenient npm scripts for Docker operations:
+
+```bash
+# Build and run (detached)
+npm run docker:up
+
+# Build and run (foreground with logs)
+npm run docker:dev
+
+# Build image only
+npm run docker:build
+
+# Stop containers
+npm run docker:down
+
+# Clean up (remove containers, volumes, images)
+npm run docker:clean
+```
+
+---
+
+## Local Development
+
+### Without Docker
 
 ```bash
 # Install dependencies
@@ -42,91 +127,321 @@ npm run dev
 # Open http://localhost:3000
 ```
 
-### Docker
+### With Docker (Development Mode)
+
+For live reloading during development:
 
 ```bash
-# Build and run with Docker Compose
-npm run docker:up # then open http://localhost:3000
-
-# Run compose in the foreground (build + logs)
+# Run in foreground with log streaming
 npm run docker:dev
 
-# Or build the image manually
-npm run docker:build
-docker run -p 3000:3000 sync-panel
-
-# Stop containers
-npm run docker:down
-
-# Clean up (remove volumes and images)
-npm run docker:clean
+# Or manually with volume mounting
+docker run -p 3000:3000 \
+  -v $(pwd):/app \
+  -w /app \
+  node:20-alpine \
+  sh -c "npm install && npm run dev"
 ```
 
-## API
+---
 
-The application integrates with the Portier sync API:
+## Environment Variables
 
-- **Endpoint**: `GET /data/sync?application_id=<id>` (base URL is `API_BASE_URL`)
-- **Fallback**: Uses mock sync preview data when the API is unavailable
+Create a `.env.local` file in the project root (or use the `.env.example` as a template):
+
+```bash
+cp .env.example .env.local
+```
+
+### Available Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `API_BASE_URL` | No | `https://portier-takehometest.onrender.com/api/v1` | Base URL for the sync API |
+
+### Docker Environment
+
+When running with Docker Compose, set environment variables in `.env` or pass them directly:
+
+```bash
+# Using .env file
+echo "API_BASE_URL=https://your-api-url.com/api/v1" > .env
+docker compose up -d
+
+# Or via command line
+docker run -p 3000:3000 \
+  -e API_BASE_URL=https://your-api-url.com/api/v1 \
+  sync-panel
+```
+
+---
+
+## Features
+
+### 4.1 Integrations List (`/integrations`)
+
+- Overview of all connected integrations
+- Status indicators:
+  - **Synced** (green) - All data is synchronized
+  - **Syncing** (blue) - Sync in progress
+  - **Conflict** (amber) - Conflicts require resolution
+  - **Error** (red) - Sync failed
+- Key metadata: Last sync time, Version
+- Search and filter by status
+
+### 4.2 Integration Detail (`/integrations/[id]`)
+
+- Integration summary with key metrics
+- **Sync Now** button to trigger synchronization
+- Preview of incoming changes before applying
+- Quick actions: View History, Resolve Conflicts
+
+### 4.3 Sync History & Versioning (`/integrations/[id]/history`)
+
+- List of past sync events with timestamps
+- Version tracking for each sync
+- Source indicator (System or External)
+- Expandable rows showing change details
+- Click to view version diff
+
+### 4.4 Version Diff (`/integrations/[id]/version-diff`)
+
+- Detailed view of changes in a specific version
+- Change statistics (added, updated, deleted)
+- Field-level change comparison
+- Visual diff with previous/new values
+
+### 4.5 Conflict Resolution (`/integrations/[id]/conflicts`)
+
+- Field-level conflict detection
+- Side-by-side comparison (Local vs External)
+- Per-field resolution choice
+- Bulk actions: Accept All Local, Accept All External
+- Progress indicator showing resolution status
+- Clear merge action when all conflicts resolved
+
+---
+
+## API Integration
+
+### Endpoint
+
+```
+GET /data/sync?application_id=<integration-id>
+```
+
+Base URL is configured via `API_BASE_URL` environment variable.
+
+### Example Response
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "successfully retrieve the data",
+  "data": {
+    "sync_approval": {
+      "application_name": "HubSpot",
+      "changes": [
+        {
+          "id": "change_001",
+          "field_name": "user.email",
+          "change_type": "UPDATE",
+          "current_value": "john@old.com",
+          "new_value": "john@company.com"
+        }
+      ]
+    },
+    "metadata": {}
+  }
+}
+```
 
 ### Error Handling
 
-The UI handles the following error states:
+The UI handles the following error states with user-friendly messages:
 
-- `4xx` - Client errors (bad request, unauthorized, etc.)
-- `500` - Internal server error
-- `502` - Gateway error (integration service down)
-- `503` - Service unavailable
-- Network/operational failures - surfaced as an error response and may fall back to mock data when available
+| Status Code | Error Type | User Message |
+|-------------|------------|-------------|
+| 4xx | Configuration Error | "Please check your integration settings." |
+| 500 | Server Error | "Internal server error. Please try again later." |
+| 502 | Gateway Error | "Integration service is currently unavailable." |
+
+### Fallback Behavior
+
+When the API is unavailable, the application gracefully falls back to mock sync preview data so users can still explore the interface.
+
+---
 
 ## Architecture
 
 ```
 src/
 ├── app/
-│   ├── page.tsx                           # Redirects to /integrations
+│   ├── error.tsx                    # Global error boundary
+│   ├── loading.tsx                  # Global loading state
+│   ├── page.tsx                     # Redirects to /integrations
+│   ├── layout.tsx                   # Root layout with navigation
+│   ├── globals.css                  # Global styles + Tailwind
 │   └── integrations/
-│       ├── page.tsx                       # Integrations list
+│       ├── page.tsx                 # Integrations list
+│       ├── loading.tsx               # Integrations loading skeleton
+│       ├── error.tsx                # Integrations error boundary
 │       └── [id]/
-│           ├── page.tsx                   # Integration detail
-│           ├── conflicts/page.tsx         # Conflict resolution screen
-│           ├── history/page.tsx           # Sync history screen
-│           └── version-diff/page.tsx      # Version diff screen
+│           ├── page.tsx             # Integration detail
+│           ├── loading.tsx           # Detail loading skeleton
+│           ├── error.tsx            # Detail error boundary
+│           ├── conflicts/
+│           │   ├── page.tsx         # Conflict resolution
+│           │   ├── loading.tsx      # Conflicts loading skeleton
+│           │   └── error.tsx        # Conflicts error boundary
+│           ├── history/
+│           │   ├── page.tsx         # Sync history
+│           │   ├── loading.tsx      # History loading skeleton
+│           │   └── error.tsx        # History error boundary
+│           └── version-diff/
+│               ├── page.tsx        # Version diff view
+│               ├── loading.tsx     # Version diff loading skeleton
+│               └── error.tsx        # Version diff error boundary
+├── actions/
+│   ├── sync.action.ts               # Server action for sync operations
+│   └── conflicts.action.ts           # Server action for conflict resolution
 ├── components/
-│   ├── integrations/          # Integration-specific components
-│   ├── sync/                  # Sync/conflict resolution UI
-│   └── ui/                    # Shared UI primitives
+│   ├── conflict/
+│   │   ├── ConflictsClient.tsx      # Conflict page client component
+│   │   └── ConflictResolver.tsx     # Conflict resolution UI
+│   ├── integrations/
+│   │   ├── IntegrationDetail.tsx    # Integration detail view
+│   │   ├── IntegrationsClient.tsx   # Integrations list client
+│   │   ├── IntegrationIcon.tsx     # Integration icon component
+│   │   ├── StatusBadge.tsx          # Status indicator badge
+│   │   ├── StatCard.tsx             # Statistic card component
+│   │   └── hystory/
+│   │       └── HistoryTable.tsx      # Sync history table
+│   ├── sync/
+│   │   └── SyncButton.tsx           # Sync trigger button + preview dialog
+│   └── ui/                          # Shared UI primitives (shadcn)
+│       ├── button.tsx
+│       ├── badge.tsx
+│       ├── card.tsx
+│       ├── dialog.tsx
+│       ├── table.tsx
+│       └── ...
 ├── lib/
-│   ├── api.ts                 # API response helpers + fetch wrapper
-│   ├── mock-data.ts           # Mock integrations/history/conflicts
-│   └── utils.ts               # Shared utilities
+│   ├── api.ts                       # API fetch wrapper + response types
+│   ├── mock-data.ts                 # Mock integrations/history/conflicts
+│   └── utils.ts                     # Utility functions
 ├── services/
-│   └── sync.service.ts         # Server-only sync/data access layer
+│   └── sync.service.ts              # Server-only sync/data access layer
 └── types/
-    └── sync.ts                 # TypeScript types for sync domain
+    └── sync.ts                      # TypeScript types for sync domain
 ```
 
-## Design Decisions
+### Key Design Decisions
 
-### Why @base-ui/react?
+**1. Separation of Concerns**
+- UI components (`/components`) are isolated from business logic
+- Server actions (`/actions`) handle mutations securely
+- Services (`/services`) abstract data access
 
-Used @base-ui/react for the Button primitive component as it provides:
+**2. Error Boundaries**
+- Each route segment has its own error and loading boundaries
+- Prevents full-page crashes from component errors
+- Graceful degradation with retry options
 
-- Accessible components out of the box
-- Unstyled base primitives that work seamlessly with Tailwind
-- Consistent behavior across the application
+**3. API Abstraction**
+- `lib/api.ts` wraps fetch with typed responses
+- `lib/mock-data.ts` provides demo data when API is unavailable
+- Strict `ApiResponse<T>` contract for all API calls
 
-### Error Handling Strategy
-
-1. API calls return a strict `ApiResponse<T>` contract
-2. Error messages are mapped to common HTTP failures (4xx/500/502)
-3. Graceful fallback to mock data for sync preview when the API is unavailable
-4. Clear UI states for conflict/error/syncing
-
-### Conflict Resolution Flow
-
+**4. Conflict Resolution Flow**
 1. User clicks "Sync Now"
-2. System fetches preview with changes and detects conflicts
-3. Conflicts displayed with side-by-side comparison
-4. User resolves each conflict (keep local, use external, or custom value)
-5. User confirms sync when all conflicts resolved
+2. System fetches preview with changes
+3. Changes displayed in approval dialog
+4. User reviews and approves
+5. Sync applied and history updated
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Port 3000 Already in Use
+
+```bash
+# Find and kill the process using port 3000
+# macOS/Linux
+lsof -ti:3000 | xargs kill -9
+
+# Or use a different port
+docker run -p 3001:3000 sync-panel
+```
+
+#### 2. Docker Build Fails
+
+```bash
+# Clean Docker cache and rebuild
+docker system prune -a
+docker compose up -d --build
+```
+
+#### 3. API Connection Issues
+
+The application will still work with mock data if the API is unavailable. To verify API connectivity:
+
+```bash
+# Check if API is reachable
+curl -I https://portier-takehometest.onrender.com/api/v1/data/sync?application_id=salesforce
+
+# Override API URL if needed
+docker run -p 3000:3000 \
+  -e API_BASE_URL=https://your-api.com/api/v1 \
+  sync-panel
+```
+
+#### 4. Container Won't Start
+
+```bash
+# View container logs for errors
+docker compose logs web
+
+# Check if container is running
+docker compose ps
+
+# Restart with fresh build
+docker compose down
+docker compose up -d --build
+```
+
+#### 5. Permission Denied on Linux
+
+```bash
+# Fix Docker permissions
+sudo usermod -aG docker $USER
+# Log out and back in, or run:
+newgrp docker
+```
+
+### Health Check
+
+The Docker setup includes a health check. Verify container health:
+
+```bash
+docker compose ps
+```
+
+A healthy container shows `healthy` under the Status column.
+
+### Need Help?
+
+If you encounter issues not covered here:
+
+1. Check the [Docker documentation](https://docs.docker.com/)
+2. Review the [Next.js documentation](https://nextjs.org/docs)
+3. Open an issue on the project repository
+
+---
+
+## License
+
+Private - All rights reserved
