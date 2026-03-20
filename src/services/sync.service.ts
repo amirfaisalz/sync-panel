@@ -12,7 +12,6 @@ import {
     syncHistoryByIntegration,
     conflictsByIntegration,
     mockSyncApprovals,
-    applyMockSync,
 } from '@/lib/mock-data';
 import { apiFetch, createSuccessResponse, type ApiResponse } from '@/lib/api';
 
@@ -60,4 +59,4 @@ export async function triggerSync(
     return result;
 }
 
-export { applyMockSync };
+export { applyMockSync, applyMockConflictMerge } from "@/lib/mock-data";

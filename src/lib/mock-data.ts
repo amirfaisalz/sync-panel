@@ -296,13 +296,61 @@ export const conflictsByIntegration: Record<string, ConflictField[]> = {
     ],
 };
 
+export function applyMockConflictMerge(
+    id: string,
+    resolvedConflicts: ConflictField[],
+): void {
+    const integration = integrations.find((i) => i.id === id);
+    if (!integration) return;
+
+    const allResolved = resolvedConflicts.every((c) => c.resolution !== null);
+    if (!allResolved) return;
+
+    const now = new Date().toISOString();
+    const versionParts = integration.version.replace("v", "").split(".");
+    const newPatch = Number.parseInt(versionParts[2] || "0", 10) + 1;
+    const newVersion = `v${versionParts[0]}.${versionParts[1]}.${newPatch}`;
+
+    conflictsByIntegration[id] = [];
+    integration.status = "synced";
+    integration.lastSyncedAt = now;
+    integration.version = newVersion;
+    integration.lastSyncDuration = `${Math.floor(Math.random() * 20) + 8}s`;
+
+    const historyEntry: SyncHistoryEvent = {
+        id: `evt-merge-${Date.now()}`,
+        timestamp: now,
+        source: "system",
+        version: newVersion,
+        summary: `Conflicts resolved — ${resolvedConflicts.length} field${resolvedConflicts.length === 1 ? "" : "s"} merged`,
+        changes: resolvedConflicts.map((c) => ({
+            id: c.id,
+            fieldName: c.fieldName,
+            changeType: "UPDATE",
+            previousValue: c.resolution === "local" ? c.externalValue : c.localValue,
+            newValue: c.resolution === "local" ? c.localValue : c.externalValue,
+        })),
+        stats: {
+            added: 0,
+            updated: resolvedConflicts.length,
+            deleted: 0,
+            total: resolvedConflicts.length,
+        },
+    };
+
+    if (!syncHistoryByIntegration[id]) {
+        syncHistoryByIntegration[id] = [];
+    }
+    syncHistoryByIntegration[id].unshift(historyEntry);
+}
+
 export function applyMockSync(id: string, changes: SyncChange[]): void {
     const integration = integrations.find((i) => i.id === id);
     if (!integration) return;
 
     const now = new Date().toISOString();
     const versionParts = integration.version.replace("v", "").split(".");
-    const newPatch = parseInt(versionParts[2] || "0", 10) + 1;
+    const newPatch = Number.parseInt(versionParts[2] || "0", 10) + 1;
     const newVersion = `v${versionParts[0]}.${versionParts[1]}.${newPatch}`;
 
     integration.status = "synced";
