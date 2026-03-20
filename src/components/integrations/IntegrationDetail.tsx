@@ -36,7 +36,7 @@ export function IntegrationDetail({
             </div>
           </div>
         </div>
-        <SyncButton id={integration.id} />
+        <SyncButton id={integration.id} integrationName={integration.name} />
       </div>
 
       {/* Conflict Alert */}

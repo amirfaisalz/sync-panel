@@ -11,14 +11,14 @@ import {
     integrations,
     syncHistoryByIntegration,
     conflictsByIntegration,
+    mockSyncApprovals,
+    applyMockSync,
 } from '@/lib/mock-data';
-import { apiFetch, type ApiResponse } from '@/lib/api';
+import { apiFetch, createSuccessResponse, type ApiResponse } from '@/lib/api';
 
 const API_BASE_URL =
     process.env.API_BASE_URL ||
     'https://portier-takehometest.onrender.com/api/v1';
-
-// ─── Mock Data Accessors ─────────────────────────────────────────────
 
 export function getIntegrations(): Integration[] {
     return integrations;
@@ -36,14 +36,28 @@ export function getConflicts(integrationId: ApplicationID): ConflictField[] {
     return (conflictsByIntegration[integrationId] || []).map((c) => ({ ...c }));
 }
 
-// ─── API Call (Sync Now) ─────────────────────────────────────────────
-
 export async function triggerSync(
     applicationId: ApplicationID,
 ): Promise<ApiResponse<SyncApiData>> {
     const endpoint = `${API_BASE_URL}/data/sync?application_id=${applicationId}`;
-
-    return apiFetch<SyncApiData>(endpoint, {
+    const result = await apiFetch<SyncApiData>(endpoint, {
         method: 'GET',
     });
+
+    if (result.code === 'SUCCESS') {
+        return result;
+    }
+
+    const mock = mockSyncApprovals[applicationId];
+    if (mock) {
+        return createSuccessResponse({
+            message: 'Sync preview loaded (mock data — API unavailable)',
+            data: mock,
+            code: 'SUCCESS',
+        });
+    }
+
+    return result;
 }
+
+export { applyMockSync };

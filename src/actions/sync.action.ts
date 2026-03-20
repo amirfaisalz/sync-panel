@@ -1,15 +1,25 @@
 "use server";
 
-import { triggerSync } from "@/services/sync.service";
-import type { ApplicationID } from "@/types/sync";
 import { redirect } from "next/navigation";
+import { triggerSync, applyMockSync } from "@/services/sync.service";
+import type { ApplicationID, SyncApiData, SyncChange } from "@/types/sync";
 
-export async function syncIntegration(id: ApplicationID) {
+export async function syncIntegration(id: ApplicationID): Promise<SyncChange[]> {
     const result = await triggerSync(id);
 
-    if (result.code === 'SUCCESS') {
-        redirect(`/integrations/${id}/sync-approval`);
+    if (result.code !== "SUCCESS") {
+        throw new Error(result.message || "Sync failed");
     }
 
-    throw new Error(result.message || "Sync failed");
+    const syncData = result as { code: string; data: SyncApiData };
+    return syncData.data.sync_approval?.changes ?? [];
+}
+
+export async function applySyncAction(
+    id: ApplicationID,
+    changes: SyncChange[],
+): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    applyMockSync(id, changes);
+    redirect(`/integrations/${id}/history`);
 }

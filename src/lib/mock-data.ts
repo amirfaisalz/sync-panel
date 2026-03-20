@@ -2,6 +2,8 @@ import type {
     Integration,
     SyncHistoryEvent,
     ConflictField,
+    SyncApiData,
+    SyncChange,
 } from "@/types/sync";
 
 // ─── Integrations ────────────────────────────────────────────────────
@@ -292,4 +294,169 @@ export const conflictsByIntegration: Record<string, ConflictField[]> = {
             resolution: null,
         },
     ],
+};
+
+export function applyMockSync(id: string, changes: SyncChange[]): void {
+    const integration = integrations.find((i) => i.id === id);
+    if (!integration) return;
+
+    const now = new Date().toISOString();
+    const versionParts = integration.version.replace("v", "").split(".");
+    const newPatch = parseInt(versionParts[2] || "0", 10) + 1;
+    const newVersion = `v${versionParts[0]}.${versionParts[1]}.${newPatch}`;
+
+    integration.status = "synced";
+    integration.lastSyncedAt = now;
+    integration.version = newVersion;
+    integration.lastSyncDuration = `${Math.floor(Math.random() * 30) + 10}s`;
+
+    const stats = {
+        added: changes.filter((c) => c.change_type === "ADD").length,
+        updated: changes.filter((c) => c.change_type === "UPDATE").length,
+        deleted: changes.filter((c) => c.change_type === "DELETE").length,
+    };
+
+    const historyEntry: SyncHistoryEvent = {
+        id: `evt-mock-${Date.now()}`,
+        timestamp: now,
+        source: "system",
+        version: newVersion,
+        summary: `Sync approved — ${[stats.added > 0 ? `${stats.added} added` : null, stats.updated > 0 ? `${stats.updated} updated` : null, stats.deleted > 0 ? `${stats.deleted} deleted` : null].filter(Boolean).join(", ")}`,
+        changes: changes.map((c) => ({
+            id: c.id,
+            fieldName: c.field_name,
+            changeType: c.change_type,
+            previousValue: c.current_value,
+            newValue: c.new_value,
+        })),
+        stats: {
+            ...stats,
+            total: changes.length,
+        },
+    };
+
+    if (!syncHistoryByIntegration[id]) {
+        syncHistoryByIntegration[id] = [];
+    }
+    syncHistoryByIntegration[id].unshift(historyEntry);
+
+    const approval = mockSyncApprovals[id];
+    if (approval) {
+        approval.sync_approval.changes = [];
+    }
+}
+
+export const mockSyncApprovals: Record<string, SyncApiData> = {
+    salesforce: {
+        sync_approval: {
+            application_name: "Salesforce",
+            changes: [
+                {
+                    id: "sync-001",
+                    field_name: "user.email",
+                    change_type: "UPDATE",
+                    current_value: "john@old.com",
+                    new_value: "john@company.com",
+                },
+                {
+                    id: "sync-002",
+                    field_name: "user.phone",
+                    change_type: "UPDATE",
+                    current_value: "+1-555-0100",
+                    new_value: "+1-555-0199",
+                },
+                {
+                    id: "sync-003",
+                    field_name: "door.status",
+                    change_type: "UPDATE",
+                    current_value: "offline",
+                    new_value: "online",
+                },
+                {
+                    id: "sync-004",
+                    field_name: "user.id",
+                    change_type: "ADD",
+                    new_value: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                },
+                {
+                    id: "sync-005",
+                    field_name: "key.status",
+                    change_type: "DELETE",
+                    current_value: "revoked",
+                },
+            ],
+        },
+        metadata: {},
+    },
+    hubspot: {
+        sync_approval: {
+            application_name: "HubSpot",
+            changes: [
+                {
+                    id: "sync-006",
+                    field_name: "company.domain",
+                    change_type: "UPDATE",
+                    current_value: "acmecorp.com",
+                    new_value: "acme-corporation.com",
+                },
+                {
+                    id: "sync-007",
+                    field_name: "contact.phone",
+                    change_type: "UPDATE",
+                    current_value: "+1 (555) 123-4567",
+                    new_value: "+1 (555) 987-6543",
+                },
+            ],
+        },
+        metadata: {},
+    },
+    stripe: {
+        sync_approval: {
+            application_name: "Stripe",
+            changes: [],
+        },
+        metadata: {},
+    },
+    slack: {
+        sync_approval: {
+            application_name: "Slack",
+            changes: [],
+        },
+        metadata: {},
+    },
+    zendesk: {
+        sync_approval: {
+            application_name: "Zendesk",
+            changes: [],
+        },
+        metadata: {},
+    },
+    intercom: {
+        sync_approval: {
+            application_name: "Intercom",
+            changes: [
+                {
+                    id: "sync-008",
+                    field_name: "user.email",
+                    change_type: "UPDATE",
+                    current_value: "support@old.com",
+                    new_value: "support@intercom.com",
+                },
+                {
+                    id: "sync-009",
+                    field_name: "door.name",
+                    change_type: "UPDATE",
+                    current_value: "Main Entrance",
+                    new_value: "Main Gate",
+                },
+                {
+                    id: "sync-010",
+                    field_name: "user.id",
+                    change_type: "ADD",
+                    new_value: "new-user-uuid-123",
+                },
+            ],
+        },
+        metadata: {},
+    },
 };
