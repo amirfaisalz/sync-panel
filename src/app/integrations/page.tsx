@@ -1,4 +1,4 @@
-import { getIntegrations } from "@/services/sync";
+import { getIntegrations } from "@/services/sync.service";
 import { IntegrationsClient } from "@/components/integrations/IntegrationsClient";
 
 export default function IntegrationsPage() {
