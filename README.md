@@ -12,6 +12,7 @@ The system supports **bidirectional data synchronization** with safe conflict de
 - [Prerequisites](#prerequisites)
 - [Docker Setup](#docker-setup)
 - [Local Development](#local-development)
+- [Testing](#testing)
 - [Environment Variables](#environment-variables)
 - [Features](#features)
 - [API Integration](#api-integration)
@@ -44,17 +45,17 @@ That's it! The application will be available at `http://localhost:3000`.
 
 ### Required
 
-| Tool | Version | Installation |
-|------|---------|-------------|
-| [Docker](https://docs.docker.com/get-docker/) | 20.10+ | [Install Guide](https://docs.docker.com/desktop/) |
-| [Docker Compose](https://docs.docker.com/compose/install/) | 2.0+ | Included with Docker Desktop |
+| Tool                                                       | Version | Installation                                      |
+| ---------------------------------------------------------- | ------- | ------------------------------------------------- |
+| [Docker](https://docs.docker.com/get-docker/)              | 20.10+  | [Install Guide](https://docs.docker.com/desktop/) |
+| [Docker Compose](https://docs.docker.com/compose/install/) | 2.0+    | Included with Docker Desktop                      |
 
 ### Optional (for local development without Docker)
 
-| Tool | Version |
-|------|---------|
-| Node.js | 20+ |
-| npm / yarn / pnpm / bun | Latest |
+| Tool                    | Version |
+| ----------------------- | ------- |
+| Node.js                 | 20+     |
+| npm / yarn / pnpm / bun | Latest  |
 
 ---
 
@@ -145,6 +146,72 @@ docker run -p 3000:3000 \
 
 ---
 
+## Testing
+
+### Unit Tests (Vitest)
+
+```bash
+# Run tests in watch mode
+npm run test
+
+# Run tests once
+npm run test:run
+
+# Run with coverage report
+npm run test:coverage
+
+# Open Vitest UI
+npm run test:ui
+```
+
+### Code Coverage 🏆
+
+This project maintains **100% unit test coverage** across all critical modules (UI Components, Server Actions, Library utils, and API adapters).
+
+To see the coverage metrics:
+
+```bash
+# Output coverage metrics to the console
+npm run test:coverage
+```
+
+Upon running, you can open `coverage/index.html` in your browser for a detailed visual breakdown.
+
+### E2E Tests (Playwright)
+
+```bash
+# Run E2E tests
+npm run test:e2e
+
+# Run E2E tests with UI
+npm run test:e2e:ui
+```
+
+### Test Structure
+
+```
+src/
+├── lib/
+│   └── utils.test.ts                 # Utility function tests
+└── test/
+    ├── setup.ts                       # Test configuration & mocks
+    ├── unit/
+    │   ├── StatusBadge.test.tsx       # Component tests
+    │   ├── SyncButton.test.tsx        # Component tests
+    │   └── api.test.ts                # API utility tests
+    └── e2e/
+        └── integrations.spec.ts       # E2E page tests
+```
+
+### Writing Tests
+
+- Unit tests go in `*.test.ts` or `*.test.tsx` files alongside the code they test
+- E2E tests go in `src/test/e2e/`
+- Vitest is configured with jsdom for React component testing
+- Playwright tests run against the dev server at localhost:3000
+
+---
+
 ## Environment Variables
 
 Create a `.env.local` file in the project root (or use the `.env.example` as a template):
@@ -155,9 +222,9 @@ cp .env.example .env.local
 
 ### Available Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `API_BASE_URL` | No | `https://portier-takehometest.onrender.com/api/v1` | Base URL for the sync API |
+| Variable       | Required | Default                                            | Description               |
+| -------------- | -------- | -------------------------------------------------- | ------------------------- |
+| `API_BASE_URL` | No       | `https://portier-takehometest.onrender.com/api/v1` | Base URL for the sync API |
 
 ### Docker Environment
 
@@ -260,11 +327,11 @@ Base URL is configured via `API_BASE_URL` environment variable.
 
 The UI handles the following error states with user-friendly messages:
 
-| Status Code | Error Type | User Message |
-|-------------|------------|-------------|
-| 4xx | Configuration Error | "Please check your integration settings." |
-| 500 | Server Error | "Internal server error. Please try again later." |
-| 502 | Gateway Error | "Integration service is currently unavailable." |
+| Status Code | Error Type          | User Message                                     |
+| ----------- | ------------------- | ------------------------------------------------ |
+| 4xx         | Configuration Error | "Please check your integration settings."        |
+| 500         | Server Error        | "Internal server error. Please try again later." |
+| 502         | Gateway Error       | "Integration service is currently unavailable."  |
 
 ### Fallback Behavior
 
@@ -332,28 +399,35 @@ src/
 │   └── utils.ts                     # Utility functions
 ├── services/
 │   └── sync.service.ts              # Server-only sync/data access layer
-└── types/
-    └── sync.ts                      # TypeScript types for sync domain
+├── types/
+│   └── sync.ts                      # TypeScript types for sync domain
+└── test/
+    ├── setup.ts                     # Test configuration & mocks
+    └── e2e/                         # Playwright E2E tests
 ```
 
 ### Key Design Decisions
 
 **1. Separation of Concerns**
+
 - UI components (`/components`) are isolated from business logic
 - Server actions (`/actions`) handle mutations securely
 - Services (`/services`) abstract data access
 
 **2. Error Boundaries**
+
 - Each route segment has its own error and loading boundaries
 - Prevents full-page crashes from component errors
 - Graceful degradation with retry options
 
 **3. API Abstraction**
+
 - `lib/api.ts` wraps fetch with typed responses
 - `lib/mock-data.ts` provides demo data when API is unavailable
 - Strict `ApiResponse<T>` contract for all API calls
 
 **4. Conflict Resolution Flow**
+
 1. User clicks "Sync Now"
 2. System fetches preview with changes
 3. Changes displayed in approval dialog
